@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Static File</title>
+</head>
+<body>
+    <h1>Hello from a static file!</h1>
+    <form id="item-form">
+        
+        <input type="text" id="item-input" placeholder="Add an item" required>
+        <button type="submit">Add</button>
+    </form>
+    <div id="item-container">
+    <ul id="item-list"></ul>
+   <script>
+    const form = document.getElementById('item-form');
+    const input = document.getElementById('item-input');
+    const list = document.getElementById('item-list');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const item = input.value.trim();
+        if (item) {
+            await fetch('/items', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ item })
+            });
+            input.value = '';
+            loadItems();
+        }
+    });
+
+    async function loadItems() {
+        const response = await fetch('/items');
+        const items = await response.json();
+        list.innerHTML = '';
+        items.forEach((item, index) => {
+            const li = document.createElement('li');
+
+            const span = document.createElement('span');
+            span.textContent = item;
+            span.className = 'item-text';
+            span.contentEditable = false;
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'edit-btn';
+            editBtn.addEventListener('click', async () => {
+                if (editBtn.textContent === 'Edit') {
+                    span.contentEditable = true;
+                    span.focus();
+                    editBtn.textContent = 'Save';
+                    editBtn.classList.remove('edit-btn');
+                    editBtn.classList.add('save-btn');
+                } else {
+                    span.contentEditable = false;
+                    const updatedItem = span.textContent.trim();
+                    await fetch(`/items/${index}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ item: updatedItem })
+                    });
+                    editBtn.textContent = 'Edit';
+                    editBtn.classList.remove('save-btn');
+                    editBtn.classList.add('edit-btn');
+                    loadItems();
+                }
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.addEventListener('click', async () => {
+                const confirmDelete = confirm(`Are you sure you want to delete "${item}"?`);
+            if (confirmDelete) {
+            await fetch(`/items/${index}`, {
+            method: 'DELETE'
+        });
+        loadItems();
+        }
+    });
+
+            li.appendChild(span);
+            li.appendChild(editBtn);
+            li.appendChild(deleteBtn);
+            list.appendChild(li);
+        });
+    }
+
+    loadItems();
+</script>
+    </div>
+</body>
+</html>
